@@ -107,6 +107,7 @@ plotGMPhyloMorphoSpace(phy = Hama2, A = hind_gpa$coords, labels = TRUE)
 
 
 
+
 ##### Now the real comparative stuff
 cu <- c(NA, 0, 0.5, 0.5, 0, 0.5, 0, 0, 0, 0.5, 0.5, 0, 0, 0 , NA, 1, 1)
 
@@ -150,9 +151,39 @@ phylo.pls(A1 = fore_gpa$coords, A2 = hind_gpa$coords, phy = Hama2, warpgrids = T
 summary(cu1)
 cuf <- as.factor(cu)
 
+
+
 compare.evol.rates(phy = Hama2, A = fore_gpa$coords, gp = cuf, iter = 5e3)
 
 compare.evol.rates(phy = Hama2, A = hind_gpa$coords, gp = cuf, iter = 5e3)
+
+# To get rate for whole group (not by subgroup), use a dummy variable.
+dummy <- c(NA, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 , NA, 0, 0)
+
+dummy <- matrix(dummy, dimnames = list(names(hind_gpa$Csize)))
+dummy <- dummy[Hama2$tip.label, ]
+dummy <- dummy[-c(3, 9)]
+dummy <- as.factor(dummy)
+
+compare.evol.rates(phy = Hama2, A = fore_gpa$coords, gp = dummy, iter = 5e3)
+
+compare.evol.rates(phy = Hama2, A = hind_gpa$coords, gp = dummy, iter = 5e3)
+
+
+# What about the size of species ranges? Hypothesis that morphological evolution is accelerated in species with reduced ranges.  
+ranges <- read.csv("Hamadryas_range.csv", header = TRUE, row.names = 1)
+ranges$Range <- as.factor(ranges$Range)
+str(ranges)
+
+H.range <- matrix(ranges$Range, dimnames = list(row.names(ranges)))
+H.range <- as.factor(H.range)
+names(H.range) <- row.names(ranges)
+H.range
+
+compare.evol.rates(phy = Hama2, A = fore_gpa$coords, gp = H.range, iter = 5e3)
+
+compare.evol.rates(phy = Hama2, A = hind_gpa$coords, gp = H.range, iter = 5e3) # for hindwing the small range has the lowest rate. 
+# Try this with more precise factors (better quantification)
 
 
 # sound producing vs. mute rates

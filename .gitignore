@@ -1,10 +1,8 @@
 .Rapp.history
 GMphylo_dickin.R
-GMphylo_forewing.R
-GMphylo_hindwing.R
 Hama_data_1.R
 Hamadryas.morphoj
 dorsal_data/
 ventral_data/
 .DS_Store
-
+Hamadryas_range.csv
