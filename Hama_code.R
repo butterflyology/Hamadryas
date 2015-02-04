@@ -95,9 +95,9 @@ match(row.names(fw), row.names(hw))
 hw_cs <- matrix(hind_gpa$Csize, dimnames = list(names(hind_gpa$Csize)))
 
 # phylogenetic signal
-physignal(phy = Hama2, A = hw, iter = 5e3, method = "Kmult") # hw shape is not randomly distributed through the tree
+(hw_ps <- physignal(phy = Hama2, A = hw, iter = 5e3, method = "Kmult")) # hw shape is not randomly distributed through the tree
 
-physignal(phy = Hama2, A = hw_cs, iter = 5e3, method = "Kmult") # hindwing centroid size (as a proxy for size) is randomly distributed through the phylogeny, though shape is not.
+(hw_cs_ps <- physignal(phy = Hama2, A = hw_cs, iter = 5e3, method = "Kmult")) # hindwing centroid size (as a proxy for size) is randomly distributed through the phylogeny, though shape is not.
 
 plotTangentSpace(A = hind_gpa$coords, label = TRUE) # PC1 (54%), PC2 (16%)
 
@@ -152,9 +152,10 @@ summary(cu1)
 cuf <- as.factor(cu)
 
 
-
+# forewing rates
 compare.evol.rates(phy = Hama2, A = fore_gpa$coords, gp = cuf, iter = 5e3)
 
+# hindwing rates
 compare.evol.rates(phy = Hama2, A = hind_gpa$coords, gp = cuf, iter = 5e3)
 
 # To get rate for whole group (not by subgroup), use a dummy variable.
@@ -187,6 +188,8 @@ compare.evol.rates(phy = Hama2, A = hind_gpa$coords, gp = H.range, iter = 5e3) #
 
 
 # sound producing vs. mute rates
+
+# Any other traits? 
 
 
 which(fore_gpa == "alicia") # alica is #1, julitta is 15
