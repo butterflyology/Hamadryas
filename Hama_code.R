@@ -67,15 +67,8 @@ plotGMPhyloMorphoSpace(phy = Hama2, A = fore_gpa$coords, labels = TRUE) #nb, for
 
 
 # compare rates of canopy vs. understory?
-# Hypothetical example
-c_u <- factor(c(0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1))
-names(c_u) <- Hama2$tip.label
-compare.evol.rates(phy = Hama2, A = fore_gpa$coords, gp = c_u, iter = 1e3)
-
-# compare morphological disparity for groups, canopy vs. understory. 
-
 # allometry
-plotAllometry(A = fore_gpa$coords, sz = fw_cs, label = Hama2$tip.label, method = "RegScore", mesh = TRUE, iter = 5e3) # the difference in size is not associated with a difference in shape
+(fw_allo <- plotAllometry(A = fore_gpa$coords, sz = fw_cs, label = Hama2$tip.label, method = "RegScore", mesh = TRUE, iter = 5e3)) # the difference in size is not associated with a difference in shape. But this does not account for phylogeny
 
 
 
@@ -109,7 +102,7 @@ plotGMPhyloMorphoSpace(phy = Hama2, A = hind_gpa$coords, labels = TRUE)
 
 
 ##### Now the real comparative stuff
-cu <- c(NA, 0, 0.5, 0.5, 0, 0.5, 0, 0, 0, 0.5, 0.5, 0, 0, 0 , NA, 1, 1)
+cu <- c(NA, 0, 0.5, 0.5, 0, 0.5, 0, 0, 0, 0.5, 0.5, 0, 0, 0 , NA, 1, 1) #0 = understory, 0.5 = mixed, 1 = canopy
 
 cu <- matrix(cu, dimnames = list(names(hind_gpa$Csize)))
 cu <- cu[Hama2$tip.label, ]
@@ -142,21 +135,21 @@ contMap(Hama.pruned$phy, x = cu1, res = 1000)
 # dev.off()
 
 
-
+##########
 # Accounting for phlyogeny, are fore- and hind-wing "integrated"?
-phylo.pls(A1 = fore_gpa$coords, A2 = hind_gpa$coords, phy = Hama2, warpgrids = TRUE, iter = 5e3) # even when correcting for phylogeny there is no association
+(fw_pls <- phylo.pls(A1 = fore_gpa$coords, A2 = hind_gpa$coords, phy = Hama2, warpgrids = TRUE, iter = 5e3)) # even when correcting for phylogeny there is no association
+
+
 
 
 # compare canopy and understory rates
-summary(cu1)
 cuf <- as.factor(cu)
 
-
 # forewing rates
-compare.evol.rates(phy = Hama2, A = fore_gpa$coords, gp = cuf, iter = 5e3)
+(fw_habitat_rate <- compare.evol.rates(phy = Hama2, A = fore_gpa$coords, gp = cuf, iter = 5e3))
 
 # hindwing rates
-compare.evol.rates(phy = Hama2, A = hind_gpa$coords, gp = cuf, iter = 5e3)
+(hw_habitat_rate <- compare.evol.rates(phy = Hama2, A = hind_gpa$coords, gp = cuf, iter = 5e3))
 
 # To get rate for whole group (not by subgroup), use a dummy variable.
 dummy <- c(NA, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 , NA, 0, 0)
@@ -166,12 +159,13 @@ dummy <- dummy[Hama2$tip.label, ]
 dummy <- dummy[-c(3, 9)]
 dummy <- as.factor(dummy)
 
-compare.evol.rates(phy = Hama2, A = fore_gpa$coords, gp = dummy, iter = 5e3)
+(fw_dummy <- compare.evol.rates(phy = Hama2, A = fore_gpa$coords, gp = dummy, iter = 5e3))
 
-compare.evol.rates(phy = Hama2, A = hind_gpa$coords, gp = dummy, iter = 5e3)
+(hw_dummy <- compare.evol.rates(phy = Hama2, A = hind_gpa$coords, gp = dummy, iter = 5e3))
 
 
 # What about the size of species ranges? Hypothesis that morphological evolution is accelerated in species with reduced ranges.  
+# Small <= 50000; 50001 > Medium < 100000; 100001 > Large 
 ranges <- read.csv("Hamadryas_range.csv", header = TRUE, row.names = 1)
 ranges$Range <- as.factor(ranges$Range)
 str(ranges)
@@ -181,10 +175,15 @@ H.range <- as.factor(H.range)
 names(H.range) <- row.names(ranges)
 H.range
 
-compare.evol.rates(phy = Hama2, A = fore_gpa$coords, gp = H.range, iter = 5e3)
+(fw_range_rate <- compare.evol.rates(phy = Hama2, A = fore_gpa$coords, gp = H.range, iter = 5e3)) #runs in support to the notion that reduced range species have accelerated rates of Evolution
 
-compare.evol.rates(phy = Hama2, A = hind_gpa$coords, gp = H.range, iter = 5e3) # for hindwing the small range has the lowest rate. 
+(hw_range_rate <- compare.evol.rates(phy = Hama2, A = hind_gpa$coords, gp = H.range, iter = 5e3)) # for hindwing the small range has the lowest rate. 
 # Try this with more precise factors (better quantification)
+
+
+
+# contrast range with habitat rates
+
 
 
 # sound producing vs. mute rates
