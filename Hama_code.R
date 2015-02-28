@@ -3,6 +3,8 @@
 library("geomorph") # v2.1.1
 library("phytools") # v0.4-31, loads ape v3.2 
 library("geiger") # v2.0.3
+library("nlme")
+
 setwd("~/Desktop/Projects/Hamadryas/Hama_data")
 
 # save(list = ls(), file = "Hama_data_1.R")
@@ -178,66 +180,3 @@ H.range
 (fw_range_rate <- compare.evol.rates(phy = Hama2, A = fore_gpa$coords, gp = H.range, iter = 5e3)) #runs in support to the notion that reduced range species have accelerated rates of Evolution
 
 (hw_range_rate <- compare.evol.rates(phy = Hama2, A = hind_gpa$coords, gp = H.range, iter = 5e3)) # for hindwing the small range has the lowest rate. 
-# Try this with more precise factors (better quantification)
-
-
-
-# contrast range with habitat rates
-
-
-
-# sound producing vs. mute rates
-
-# Any other traits? 
-
-
-which(fore_gpa == "alicia") # alica is #1, julitta is 15
-fore_gpa_1 <- fore_gpa$coords[, , -1]
-fore_gpa_1 <- fore_gpa_1[, , -14]
-
-fore_gpa.2d <- two.d.array(fore_gpa_1)
-
-fact <- as.factor(sort(cu1))
-str(fact)
-# morphological disparity for groups
-morphol.disparity(A = fore_gpa_1, groups = fact, iter = 5e3) 
-
-
-procD.lm(fore_gpa.2d ~ fact, iter = 5e3, RRPP = TRUE)
-# keep in mind we will have limited power because of the small size of our data set. 
-
-# phylogenetic regression of shape on ecological variable? Not for GM data
-
-
-
-
-
-
-
-
-
-
-
-
-
-# options(error = recover) # c to escape, error = normal to terminate
-# define.modules(fw, nmodules = 2)
-# phylogenetic regression for shape based on behavior / ecology? 
-
-
-
-
-# compare integration of leading edge of forewing to trailing edge of forewing
-morphol.integr(fore_gpa$coords[7:33, , ], fore_gpa$coords[34:50, , ], method = "RV", iter = 5e3) # the leading edge of forewing seems to go with a trailing edge. This is innane and just means that forwing shape differs among species. Will delete is later versions of code. 
-
-
-
-
-# THIS DOES NOT ACCOUNT FOR PHYLOGENY. Integaration between two modules (2D vs. 3D array should give same results) using PLS and RV
-morphol.integr(A1 = fore_gpa$coords, A2 = hind_gpa$coords, method = "PLS", warpgrids = TRUE, iter = 5e3, label = NULL) # fore-wing and hind-wing shape do not appear to be significantly correlated 
-
-morphol.integr(A1 = fore_gpa$coords, A2 = hind_gpa$coords, method = "RV", warpgrids = TRUE, iter = 5e3, label = NULL)
-
-# however, once we correct for phylogeny we find that this means shit p = 0.5
-
-two.b.pls(A1 = fw, A2 = hw, iter = 1e4, warpgrids = TRUE, verbose = FALSE)
