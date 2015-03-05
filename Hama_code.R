@@ -1,9 +1,8 @@
 # Hamadryas 
 
-library("geomorph") # v2.1.1
+library("geomorph") # v2.1.4
 library("phytools") # v0.4-31, loads ape v3.2 
 library("geiger") # v2.0.3
-library("nlme")
 
 setwd("~/Desktop/Projects/Hamadryas/Hama_data")
 
@@ -38,15 +37,16 @@ plot.phylo(Hama2, font = 3, label.offset = 0.03, edge.width = 3)
 ####### Morphometrics
 #### Fore-wing
 # read in data
-fore <- readland.tps("dorsal_data/Hama_dorsal_aligned.tps", 
-	specID = "ID")
+fore <- readland.tps("dorsal_data/Hama_dorsal_aligned.tps",	specID = "ID")
 str(fore)
 dim(fore) # 50 landmarks with X & Y coordinates, for 17 samples
 
-fore_gpa <- gpagen(A = fore, Proj = TRUE, ProcD = TRUE, ShowPlot = TRUE) 
+fore_gpa <- gpagen(A = fore, Proj = TRUE, ProcD = TRUE, 
+	ShowPlot = TRUE) 
 	# used Procrustes distance for sliding in TPSrelW
 fw <- two.d.array(fore_gpa$coords)
 match(Hama2$tip.label, row.names(fw)) # confirm names in tree and data match
+
 
 # Because I constructed the sliders in a different program the centroid sizes calculated by gpagen are not correct. Here I import them manually (lame, I know). 
 fore_cs <- c(3.33294570842831e+3, 3.16568469860016e+3, 
@@ -59,10 +59,10 @@ fw_cs <- matrix(fore_cs, dimnames = list(names(fore_gpa$Csize)))
 
 ## test for phylogenetic signal
 # forewing
-(fw_ps <- physignal(phy = Hama2, A = fw, iter = 5e3, method = "Kmult")) # fore-wing shape is not randomly distributed through the tree
+(fw_ps <- physignal(phy = Hama2, A = fw, iter = 1e4, method = "Kmult")) # fore-wing shape is not randomly distributed through the tree
 
 #centroid size
-(fw_cs_ps <- physignal(phy = Hama2, A = fw_cs, iter = 5e3, 
+(fw_cs_ps <- physignal(phy = Hama2, A = fw_cs, iter = 1e4, 
 	method = "Kmult")) # fore-wing centroid size is not randomly distributed through the tree
 
 # PCA on forewing shape data
@@ -79,7 +79,7 @@ plotGMPhyloMorphoSpace(phy = Hama2, A = fore_gpa$coords, labels = TRUE)
 # allometry
 (fw_allo <- plotAllometry(A = fore_gpa$coords, sz = fw_cs, 
 	label = Hama2$tip.label, method = "RegScore", mesh = TRUE, 
-	iter = 5e3)) # the difference in size is not associated with a difference in shape. But this does not account for phylogeny
+	iter = 1e4)) # the difference in size is not associated with a difference in shape. But this does not account for phylogeny
 
 
 #### Hind wing
@@ -95,7 +95,7 @@ match(row.names(fw), row.names(hw))
 hw_cs <- matrix(hind_gpa$Csize, dimnames = list(names(hind_gpa$Csize)))
 
 # phylogenetic signal
-(hw_ps <- physignal(phy = Hama2, A = hw, iter = 5e3, method = "Kmult")) # hw shape is not randomly distributed through the tree
+(hw_ps <- physignal(phy = Hama2, A = hw, iter = 1e4, method = "Kmult")) # hw shape is not randomly distributed through the tree
 
 (hw_cs_ps <- physignal(phy = Hama2, A = hw_cs, iter = 5e3, 
 	method = "Kmult")) # hindwing centroid size (as a proxy for size) is randomly distributed through the phylogeny, though shape is not.
@@ -141,19 +141,53 @@ contMap(Hama.pruned$phy, x = cu1, res = 1000)
 
 ##########
 # Accounting for phlyogeny, are fore- and hind-wing "integrated"?
-(fw_pls <- phylo.pls(A1 = fore_gpa$coords, A2 = hind_gpa$coords, 
-	phy = Hama2, warpgrids = TRUE, iter = 5e3)) # even when correcting for phylogeny there is no association
+(F_H_pls <- phylo.pls(A1 = fore_gpa$coords, A2 = hind_gpa$coords, 
+	phy = Hama2, warpgrids = TRUE, iter = 1e4)) # even when correcting for phylogeny there is no association
+
+# examine correlations of characters within wings as well
+plotAllSpecimens(fore_gpa$coords, mean = TRUE)
+str(fore_gpa)
+
+plot(fore_gpa$coords[, 1, ], fore_gpa$coords[, 2, ], pch = 19, xlim = c(-0.21, 0.21), ylim = c(-0.1, 0.16))
+# vein points
+points(fore_gpa$coords[1:6, 1, ], fore_gpa$coords[1:6, 2, ], pch = 19, col = "red")
+# leading edge points
+points(fore_gpa$coords[7:33, 1, ], fore_gpa$coords[7:33, 2, ], pch = 19, col = "Dodgerblue")
+# trailing edge points
+points(fore_gpa$coords[34:50, 1, ], fore_gpa$coords[34:50, 2, ], pch = 19, col = "dark green")
+
+
+# compare leading edge and trailing edge of the wing
+(LE_TE_pls <- phylo.pls(A1 = fore_gpa$coords[7:33, , ], 
+	A2 = fore_gpa$coords[34:50, , ], phy = Hama2, warpgrids = TRUE, 
+	iter = 1e4))
+
+# compar leading edge and side of wing
+(LE_S_pls <- phylo.pls(A1 = fore_gpa$coords[7:33, , ], 
+	A2 = fore_gpa$coords[1:6, , ],	phy = Hama2, warpgrids = TRUE, 
+	iter = 5e3))
+
+# compare trailing edge and side of wing
+(TE_S_pls <- phylo.pls(A1 = fore_gpa$coords[34:50, , ], 
+	A2 = fore_gpa$coords[1:6, , ],	phy = Hama2, warpgrids = TRUE, 
+	iter = 1e4))
+
+
+
+
+
+
 
 # compare canopy and understory rates
 cuf <- as.factor(cu)
 
 # forewing rates
 (fw_habitat_rate <- compare.evol.rates(phy = Hama2, 
-	A = fore_gpa$coords, gp = cuf, iter = 5e3))
+	A = fore_gpa$coords, gp = cuf, iter = 1e4))
 
 # hindwing rates
 (hw_habitat_rate <- compare.evol.rates(phy = Hama2, 
-	A = hind_gpa$coords, gp = cuf, iter = 5e3))
+	A = hind_gpa$coords, gp = cuf, iter = 1e4))
 
 # To get rate for whole group (not by subgroup), use a dummy variable.
 dummy <- c(NA, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NA, 0, 0)
@@ -163,10 +197,10 @@ dummy <- dummy[-c(3, 9)]
 dummy <- as.factor(dummy)
 
 (fw_dummy <- compare.evol.rates(phy = Hama2, A = fore_gpa$coords, 
-	gp = dummy, iter = 5e3))
+	gp = dummy, iter = 1e4))
 
 (hw_dummy <- compare.evol.rates(phy = Hama2, A = hind_gpa$coords, 
-	gp = dummy, iter = 5e3))
+	gp = dummy, iter = 1e4))
 
 
 # What about the size of species ranges? Hypothesis that morphological evolution is accelerated in species with reduced ranges.  
@@ -181,9 +215,7 @@ names(H.range) <- row.names(ranges)
 H.range
 
 (fw_range_rate <- compare.evol.rates(phy = Hama2, A = fore_gpa$coords, 
-	gp = H.range, iter = 5e3)) #runs in support to the notion that 
-	reduced range species have accelerated rates of Evolution
+	gp = H.range, iter = 1e4)) #runs in support to the notion that reduced range species have accelerated rates of Evolution
 
 (hw_range_rate <- compare.evol.rates(phy = Hama2, A = hind_gpa$coords, 
-	gp = H.range, iter = 5e3)) # for hindwing the small range has the 
-	lowest rate. 
+	gp = H.range, iter = 1e4)) # for hindwing the small range has the lowest rate. 
