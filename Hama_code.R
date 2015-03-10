@@ -29,10 +29,6 @@ plot(attr(Hama2, "D2"), type = "l", xlab = "", ylab = "") # plot of the D2i valu
 mtext("Taxon", 1, line = 2)
 mtext(expression(paste("D"[i]^2)), 2, line = 2)
 
-# pdf(file = "Hamadryas_phylo.pdf")
-plot.phylo(Hama2, font = 3, label.offset = 0.03, edge.width = 3)
-# dev.off()
-
 
 ####### Morphometrics
 #### Fore-wing
@@ -156,24 +152,21 @@ points(fore_gpa$coords[7:33, 1, ], fore_gpa$coords[7:33, 2, ], pch = 19, col = "
 # trailing edge points
 points(fore_gpa$coords[34:50, 1, ], fore_gpa$coords[34:50, 2, ], pch = 19, col = "dark green")
 
+# comparing hw internal and wing vein landmarks
+plot(hind_gpa$coords[, 1, ], hind_gpa$coords[, 2, ], pch = 19, xlim = c(-0.4, 0.4), ylim = c(-0.3, 0.3))
+points(hind_gpa$coords[1:6, 1, ], hind_gpa$coords[1:6, 2, ], col = "dodgerblue", pch = 19)
+points(hind_gpa$coords[7:12, 1, ], hind_gpa$coords[7:12, 2, ], col = "red", pch = 19)
+
+# we only want to compare "like" landmarks, such as type I only comapred to type I, and semi-landmarks compared only to semi-landmarks
 
 # compare leading edge and trailing edge of the wing
 (LE_TE_pls <- phylo.pls(A1 = fore_gpa$coords[7:33, , ], 
 	A2 = fore_gpa$coords[34:50, , ], phy = Hama2, warpgrids = TRUE, 
 	iter = 1e4))
 
-# compar leading edge and side of wing
-(LE_S_pls <- phylo.pls(A1 = fore_gpa$coords[7:33, , ], 
-	A2 = fore_gpa$coords[1:6, , ],	phy = Hama2, warpgrids = TRUE, 
-	iter = 5e3))
-
-# compare trailing edge and side of wing
-(TE_S_pls <- phylo.pls(A1 = fore_gpa$coords[34:50, , ], 
-	A2 = fore_gpa$coords[1:6, , ],	phy = Hama2, warpgrids = TRUE, 
+(HW_pls <- phylo.pls(A1 = hind_gpa$coords[1:6, , ], A2 = 
+	hind_gpa$coords[7:12, , ],	phy = Hama2, warpgrids = TRUE, 
 	iter = 1e4))
-
-
-
 
 
 
@@ -213,9 +206,30 @@ H.range <- matrix(ranges$Range, dimnames = list(row.names(ranges)))
 H.range <- as.factor(H.range)
 names(H.range) <- row.names(ranges)
 H.range
+H.range <- H.range[Hama2$tip.label]
+
 
 (fw_range_rate <- compare.evol.rates(phy = Hama2, A = fore_gpa$coords, 
 	gp = H.range, iter = 1e4)) #runs in support to the notion that reduced range species have accelerated rates of Evolution
 
 (hw_range_rate <- compare.evol.rates(phy = Hama2, A = hind_gpa$coords, 
 	gp = H.range, iter = 1e4)) # for hindwing the small range has the lowest rate. 
+
+# Figure 2
+Hama.range <- c("Large", "Small", "Small", "Medium", "Large", "Large", "Medium", "Medium", "Small", "Large", "Large", "Large", "Large", "Large", "Large", "Small", "Large")
+Hama.range <- matrix(Hama.range, dimnames = list(Hama2$tip.label))
+
+
+range.color <- as.integer(H.range)
+range.color[range.color == "3"] <- "red"
+range.color[range.color == "2"] <- "green"
+range.color[range.color == "1"] <- "dodgerblue"
+
+# pdf(file = "Hamadryas_phylo2.pdf")
+plot.phylo(Hama2, font = 3, label.offset = 0.03, edge.width = 3)
+points(rep(0.935, length(Hama2$tip.label)), 1 : length(Hama2$tip.label), pch = 19, col = range.color, cex = 1.5)
+points(rep(0.98, length(Hama2$tip.label)), 1 : length(Hama2$tip.label), pch = 19, col = cu_color, cex = 1.5)
+legend("topleft", legend = c("Range", "Small", "Medium", "Large", "Habitat", "Ground", "Canopy", "Mixed"), ncol = 2, pch = 19, col = c(0, "red", "green", "dodgerblue", 0, "darkred", "darkgreen", "orange"), bty = "n", pt.cex = 1.5)
+# dev.off()
+
+
