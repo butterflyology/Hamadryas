@@ -93,7 +93,7 @@ hw_cs <- matrix(hind_gpa$Csize, dimnames = list(names(hind_gpa$Csize)))
 # phylogenetic signal
 (hw_ps <- physignal(phy = Hama2, A = hw, iter = 1e4, method = "Kmult")) # hw shape is not randomly distributed through the tree
 
-(hw_cs_ps <- physignal(phy = Hama2, A = hw_cs, iter = 5e3, 
+(hw_cs_ps <- physignal(phy = Hama2, A = hw_cs, iter = 1e4, 
 	method = "Kmult")) # hindwing centroid size (as a proxy for size) is randomly distributed through the phylogeny, though shape is not.
 
 plotTangentSpace(A = hind_gpa$coords, label = TRUE) # PC1 (54%), PC2 (16%)
