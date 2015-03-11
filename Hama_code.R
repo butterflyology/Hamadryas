@@ -230,6 +230,8 @@ plot.phylo(Hama2, font = 3, label.offset = 0.03, edge.width = 3)
 points(rep(0.935, length(Hama2$tip.label)), 1 : length(Hama2$tip.label), pch = 19, col = range.color, cex = 1.5)
 points(rep(0.98, length(Hama2$tip.label)), 1 : length(Hama2$tip.label), pch = 19, col = cu_color, cex = 1.5)
 legend("topleft", legend = c("Range", "Small", "Medium", "Large", "Habitat", "Ground", "Canopy", "Mixed"), ncol = 2, pch = 19, col = c(0, "red", "green", "dodgerblue", 0, "darkred", "darkgreen", "orange"), bty = "n", pt.cex = 1.5)
+segments(x0 = 0.02, x1 = 0.135, y0 = 16.6, y1 = 16.6, lty = 1, lwd = 2)
+segments(x0 = 0.239, x1 = 0.36, y0 = 16.6, y1 = 16.6, lty = 1, lwd = 2)
 # dev.off()
 
 
