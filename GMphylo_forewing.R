@@ -1,5 +1,4 @@
 x <- two.d.array(fore_gpa$coords)
-x <- A
 
 N <- length(Hama2$tip.label)
 

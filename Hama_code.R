@@ -1,6 +1,6 @@
 # Hamadryas 
 
-library("geomorph") # v2.1.4
+library("geomorph") # v2.1.5
 library("phytools") # v0.4-31, loads ape v3.2 
 library("geiger") # v2.0.3
 
