@@ -10,6 +10,8 @@ setwd("~/Desktop/Projects/Hamadryas/Hama_data")
 load("Hama_data_1.R")
 # packageDescription("ape")$Version
 
+
+## Read in the tree and make ultrametric
 Hama <- read.nexus("../Tree_data/Hamydryas_ml.tre")
 plot(Hama)
 is.ultrametric(Hama)
@@ -29,77 +31,141 @@ mtext("Taxon", 1, line = 2)
 mtext(expression(paste("D"[i]^2)), 2, line = 2)
 
 
-####### Morphometrics
+##### Morphometrics
 #### Fore-wing
-## read in data
+### Read in data
 fore <- readland.tps("dorsal_data/Hama_dorsal_3_aligned.TPS", specID = "ID")
 str(fore)
 dim(fore) # 50 landmarks with X & Y coordinates, for 71 samples
-# arete is not in the tree, so we remove the data prior to superimposition
 
+# conduct generalized Procrustes superimposition
 fore_gpa <- gpagen(A = fore, Proj = TRUE, ProcD = TRUE, ShowPlot = TRUE) # used Procrustes distance for sliding in TPSrelW
 fw <- two.d.array(fore_gpa$coords)
 dim(fw)
 table(rownames(fw))
 match(Hama2$tip.label, row.names(fw)) # confirm names in tree and data match
 
+
+### Now calculate mean shapet because we can only use one indidivual per species.
+
 groupF <- as.factor(unique(rownames(fw)))
 
-p <- dim(fore_gpa$coords)[1]
-k <- dim(fore_gpa$coords)[2]
-YF <- array(NA, dim = c(p, k, length(levels(groupF))))
+pF <- dim(fore_gpa$coords)[1]
+kF <- dim(fore_gpa$coords)[2]
+YF <- array(NA, dim = c(pF, kF, length(levels(groupF))))
 dimnames(YF)[[3]] <- levels(groupF)
 dim(YF)
 
 for(i in 1:length(levels(groupF))){
-	grp <- fw[which(group == levels(groupF)[i]), ]
-	foo <- arrayspecs(grp, p, k)
-	YF[, , i] <- mshape(foo)
+	grpF <- fw[which(groupF == levels(groupF)[i]), ]
+	fooF <- arrayspecs(grpF, pF, kF)
+	YF[, , i] <- mshape(fooF)
 }
 YF
 dim(YF)
 plot(YF[, 1, ], YF[, 2, ], pch = 19)
 
-YF2 <- two.d.array(YF)
-head(YF2)
-dim(YF2)
+YF2d <- two.d.array(YF)
+head(YF2d)
+dim(YF2d)
 
 # I think that my function worked correctly, but I want to be super duper extra safe, so I'm going to double check. 
 velutina <- fw[c(17, 68:70), ]
-v1 <- arrayspecs(velutina, p = 50, k = 2)
-v2 <- mshape(v1)
+v1F <- arrayspecs(velutina, p = 50, k = 2)
+v2F <- mshape(v1F)
 
-plot(Y[, , "velutina"], pch = 19)
-points(v2[, 1], v2[, 2], pch = 15) #good.
+plot(YF[, , "velutina"], pch = 19)
+points(v2F[, 1], v2F[, 2], pch = 15) #good.
+
+physignal(phy = Hama2, A = YF, iter = 1e4)
+
+plotTangentSpace(A = YF, label = TRUE, warpgrids = TRUE, verbose = FALSE) # PC1 = 37%, PC2 = 28%
+
+plotGMPhyloMorphoSpace(phy = Hama2, A = YF) 
+
+# Now confirm the set of landmarks that correspond to leading, outer, and trailing edge of the wing. 
+plot(YF[, 1, ], YF[, 2, ], pch = 19)
+points(YF[1:6, 1, ], YF[1:6, 2, ], col = "red", pch = 19) #edge of wing
+points(YF[7:33, 1, ], YF[7:33, 2, ], pch = 19, col = "Dodgerblue") # leading edge
+points(YF[34:50, 1, ], YF[34:50, 2, ], pch = 19, col = "dark green")# trailing edge points
 
 
-physignal(phy = Hama2, A = Y2, iter = 1e4)
+### enter covariate data
+# import range data
+ranges <- read.csv("Hamadryas_range.csv", header = TRUE, row.names = 1)
+ranges$Range <- as.factor(ranges$Range)
+str(ranges)
 
-plotTangentSpace(A = Y, label = TRUE, warpgrids = TRUE, verbose = FALSE) # PC1 = 37%, PC2 = 28%
+H.range <- matrix(ranges$Range, dimnames = list(row.names(ranges)))
+H.range <- as.factor(H.range)
+names(H.range) <- row.names(ranges)
+H.range
+H.range <- H.range[Hama2$tip.label]
 
-plotGMPhyloMorphoSpace(phy = Hama2, A = Y) 
-plot(Y[, 1, ], Y[, 2, ], pch = 19)
-points(Y[1:6, 1, ], Y[1:6, 2, ], col = "red", pch = 19) #edge of wing
-points(Y[7:33, 1, ], Y[7:33, 2, ], pch = 19, col = "Dodgerblue") # leading edge
-points(Y[34:50, 1, ], Y[34:50, 2, ], pch = 19, col = "dark green")# trailing edge points
+# Import habitat data
+cu <- c(NA, 0, 0.5, 0.5, 0, 0.5, 0, 0, 0, 0.5, 0.5, 0, 0, 0 , NA, 1, 1) #0 = understory, 0.5 = mixed, 1 = canopy
 
-(LE_TE_pls2 <- phylo.pls(A = Y[7:33, , ], A2 = Y[34:50, , ], phy = Hama2, iter = 1e4)) # r-PLS 0.867
+cu <- matrix(cu, dimnames = list(rownames(YF2d)))
+
+cu <-cu[Hama2$tip.label, ]
+cu1 <- cu[-c(3, 9)]
+cu1
+
+Hama.pruned <- treedata(phy = Hama2, data = cu1, sort = TRUE, warnings = TRUE) Safety check to ensure that the covariate data and tree tips match up
+plot(Hama.pruned$phy)
+
+anc.ML(tree = Hama.pruned$phy, x = cu1, maxit = 1e4, model = "BM")
+fastAnc(tree = Hama.pruned$phy, x = cu1, vars = TRUE, CI = TRUE)
+# pdf(file = "Hama_FastAnc.pdf", bg = "white")
+contMap(Hama.pruned$phy, x = cu1, res = 1000)
+# dev.off()
+
+# pdf(file = "Hama_fan.pdf", bg = "white")
+contMap(Hama.pruned$phy, x = cu1, res = 1000, type = "fan", legend = FALSE)
+# dev.off()
+
+
+cu_color <- cu
+cu_color[cu == 0.0] <- "brown"
+cu_color[cu == 0.5] <- "orange"
+cu_color[cu == 1.0] <- "dark green"
+
+nspecies <- length(Hama2$tip.label)
+
+cuf <- matrix(cu, dimnames = list(row.names(ranges)))
+cuf <- as.factor(cuf)
+names(cuf) <- row.names(ranges)
+cuf
+cuf <- H.range[Hama2$tip.label]
+
+
+
+# compare canopy and understory rates
+
+(LE_TE_pls2 <- phylo.pls(A = YF[7:33, , ], A2 = YF[34:50, , ], phy = Hama2, iter = 1e4)) # r-PLS 0.867
 
 (fw_habitat_rate2 <- compare.evol.rates(phy = Hama2, A = Y, gp = cuf, iter = 1e4)) 
 
 (fw_range_rate2 <- compare.evol.rates(phy = Hama2, A = Y, gp = H.range, iter = 1e4))
 
 
-# Because I constructed the sliders in a different program the centroid sizes calculated by gpagen are not correct. Here I import them manually (lame, I know). 
-fore_cs <- c(3.33294570842831e+3, 3.16568469860016e+3, 
-3.39261539540194e+3, 3.78430193381669e+3, 3.48021469444961e+3, 3.33777956879712e+3, 2.68538836886851e+3, 3.17658593061965e+3, 
-3.39194656501948e+3, 3.61375985829088e+3, 3.41355030541168e+3, 2.85453923363221e+3, 4.05270026183310e+3, 3.10518493006033e+3, 
-3.01038815277082e+3, 3.56187305827559e+3, 3.64253669986741e+3) 
-fw_cs <- matrix(fore_cs, dimnames = list(names(fore_gpa$Csize)))
+# Import cetroid sizes for forewing
+fore_cs <- read.delim("dorsal_data/Hama_dorsal_3_centroid.txt", sep = "\t", header = TRUE)
+head(fore_cs)
+fore_cs
+table(fore_cs$species)
+
+t1 <- fore_cs %>% group_by(species) %>% summarize(mean_csize = mean(csize))
+t1
+fw_cs <- matrix(t1$mean_csize, dimnames = list(t1$species))
+fw_cs <- fw_cs[-1,]
+
+fw_cs <- fw_cs[Hama2$tip.label]
+
 
 ## test for phylogenetic signal
 # forewing
-(fw_ps <- physignal(phy = Hama2, A = fw, iter = 1e4)) # fore-wing shape is not randomly distributed through the tree
+(fw_ps <- physignal(phy = Hama2, A = YF2d, iter = 1e4)) # fore-wing shape is not randomly distributed through the tree
 
 #centroid size
 (fw_cs_ps <- physignal(phy = Hama2, A = fw_cs, iter = 1e4)) # fore-wing centroid size is not randomly distributed through the tree
@@ -116,6 +182,20 @@ plotGMPhyloMorphoSpace(phy = Hama2, A = fore_gpa$coords)
 # compare rates of canopy vs. understory?
 # allometry
 (fw_allo <- procD(A = fore_gpa$coords, sz = fw_cs, label = Hama2$tip.label, method = "RegScore", mesh = TRUE, iter = 1e4)) # the difference in size is not associated with a difference in shape. But this does not account for phylogeny
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #### Hind wing
@@ -142,24 +222,10 @@ plotGMPhyloMorphoSpace(phy = Hama2, A = hind_gpa$coords, labels = TRUE)
 
 
 ##### Now the real comparative stuff
-cu <- c(NA, 0, 0.5, 0.5, 0, 0.5, 0, 0, 0, 0.5, 0.5, 0, 0, 0 , NA, 1, 1) #0 = understory, 0.5 = mixed, 1 = canopy
-
-cu <- matrix(cu, dimnames = list(names(hind_gpa$Csize)))
-cu <- cu[Hama2$tip.label, ]
-cu1 <- cu[-c(3, 9)]
-cu1
-
-cu_color <- cu
-cu_color[cu == 0] <- "brown"
-cu_color[cu == 0.5] <- "orange"
-cu_color[cu == 1] <- "dark green"
-
-nspecies <- length(Hama2$tip.label)
 
 # pdf(file = "Hama_hab_tree.pdf", bg = "white")
 plot.phylo(Hama2, font = 3, label.offset = 0.07, edge.width = 3)
-points(x = rep(1.035, nspecies), y = 1:nspecies, pch = 19, 
-	col = cu_color, cex = 1.5)
+points(x = rep(1.035, nspecies), y = 1:nspecies, pch = 19, col = cu_color, cex = 1.5)
 # dev.off()
 
 
@@ -215,12 +281,7 @@ points(hind_gpa$coords[7:12, 1, ], hind_gpa$coords[7:12, 2, ], col = "red", pch 
 
 
 
-# compare canopy and understory rates
-cuf <- matrix(cu, dimnames = list(row.names(ranges)))
-cuf <- as.factor(cuf)
-names(cuf) <- row.names(ranges)
-cuf
-cuf <- H.range[Hama2$tip.label]
+
 
 
 
