@@ -16,10 +16,8 @@ is.ultrametric(Hama)
 
 # make tree ultrametric, lamdba is the smoothing parameter. 
 lam <- 10^(-1:6)
-cv <- sapply(lam, function(x) sum(attr(chronopl(Hama, lambda = x, 
-	CV = TRUE), "D2")))
-plot(lam, cv, pch = 19, ylab = "cross-validation score", 
-	xlab = expression(paste(lambda)), las = 1, cex = 1.5) # lowest CV 
+cv <- sapply(lam, function(x) sum(attr(chronopl(Hama, lambda = x, CV = TRUE), "D2")))
+plot(lam, cv, pch = 19, ylab = "cross-validation score", xlab = expression(paste(lambda)), las = 1, cex = 1.5) # lowest CV 
 
 Hama2 <- chronopl(phy = Hama, lambda = 0.1, CV = TRUE, eval.max = 1e3, iter.max = 1e4)
 is.ultrametric(Hama2)
@@ -33,36 +31,38 @@ mtext(expression(paste("D"[i]^2)), 2, line = 2)
 
 ####### Morphometrics
 #### Fore-wing
-# read in data
-fore <- readland.tps("Hama_update_aligned3.TPS", specID = "ID")
+## read in data
+fore <- readland.tps("dorsal_data/Hama_dorsal_3_aligned.TPS", specID = "ID")
 str(fore)
-dim(fore) # 50 landmarks with X & Y coordinates, for 73 samples
+dim(fore) # 50 landmarks with X & Y coordinates, for 71 samples
+# arete is not in the tree, so we remove the data prior to superimposition
 
-fore_gpa <- gpagen(A = fore, Proj = TRUE, ProcD = TRUE, ShowPlot = TRUE) 
-	# used Procrustes distance for sliding in TPSrelW
+fore_gpa <- gpagen(A = fore, Proj = TRUE, ProcD = TRUE, ShowPlot = TRUE) # used Procrustes distance for sliding in TPSrelW
 fw <- two.d.array(fore_gpa$coords)
+dim(fw)
+table(rownames(fw))
 match(Hama2$tip.label, row.names(fw)) # confirm names in tree and data match
 
-group <- as.factor(unique(rownames(fw)))
+groupF <- as.factor(unique(rownames(fw)))
 
 p <- dim(fore_gpa$coords)[1]
 k <- dim(fore_gpa$coords)[2]
-Y <- array(NA, dim = c(p, k, length(levels(group))))
-dimnames(Y)[[3]] <- levels(group)
-dim(Y)
+YF <- array(NA, dim = c(p, k, length(levels(groupF))))
+dimnames(YF)[[3]] <- levels(groupF)
+dim(YF)
 
-for(i in 1:length(levels(group))){
-	grp <- fw[which(group == levels(group)[i]), ]
+for(i in 1:length(levels(groupF))){
+	grp <- fw[which(group == levels(groupF)[i]), ]
 	foo <- arrayspecs(grp, p, k)
-	Y[, , i] <- mshape(foo)
+	YF[, , i] <- mshape(foo)
 }
-Y
-dim(Y)
-plot(Y[, 1, ], Y[, 2, ], pch = 19)
+YF
+dim(YF)
+plot(YF[, 1, ], YF[, 2, ], pch = 19)
 
-Y2 <- two.d.array(Y)
-head(Y2)
-dim(Y2)
+YF2 <- two.d.array(YF)
+head(YF2)
+dim(YF2)
 
 # I think that my function worked correctly, but I want to be super duper extra safe, so I'm going to double check. 
 velutina <- fw[c(17, 68:70), ]
@@ -75,7 +75,7 @@ points(v2[, 1], v2[, 2], pch = 15) #good.
 
 physignal(phy = Hama2, A = Y2, iter = 1e4)
 
-plotTangentSpace(A = Y, label = TRUE, warpgrids = TRUE, verbose = FALSE) # PC1 = 37%, PC2 = 27%
+plotTangentSpace(A = Y, label = TRUE, warpgrids = TRUE, verbose = FALSE) # PC1 = 37%, PC2 = 28%
 
 plotGMPhyloMorphoSpace(phy = Hama2, A = Y) 
 plot(Y[, 1, ], Y[, 2, ], pch = 19)
@@ -285,3 +285,50 @@ segments(x0 = 0.239, x1 = 0.36, y0 = 16.6, y1 = 16.6, lty = 1, lwd = 2)
 # dev.off()
 
 
+#####
+##### Hind wing 
+#####
+
+hind <- readland.tps("ventral_data/Hama_vent_3.tps", specID = "ID")
+str(hind)
+dim(hind)
+
+hind_gpa <- gpagen(A = hind, Proj = TRUE, ProcD = TRUE, ShowPlot = TRUE) # used Procrustes distance for sliding in TPSrelW
+hw <- two.d.array(hind_gpa$coords)
+dim(hw)
+table(rownames(hw))
+match(Hama2$tip.label, row.names(hw)) # confirm names in tree and data match
+
+groupH <- as.factor(unique(rownames(hw)))
+
+p2 <- dim(hind_gpa$coords)[1]
+k2 <- dim(hind_gpa$coords)[2]
+YH2 <- array(NA, dim = c(p, k, length(levels(groupH))))
+dimnames(YH2)[[3]] <- levels(groupH)
+dim(YH2)
+
+for(i in 1:length(levels(groupH))){
+	grp <- fw[which(group == levels(groupH)[i]), ]
+	foo <- arrayspecs(grp, p, k)
+	YH2[, , i] <- mshape(foo)
+}
+YH2
+dim(YH2)
+plot(YH2[, 1, ], YH2[, 2, ], pch = 19)
+
+YHb <- two.d.array(Y)
+head(YHb)
+dim(YHb)
+
+# I think that my function worked correctly, but I want to be super duper extra safe, so I'm going to double check. 
+velutinaH <- hw[c(17, 68:70), ]
+vH1 <- arrayspecs(velutinaH, p = 50, k = 2)
+vH2 <- mshape(vH1)
+
+plot(YH2[, , "velutina"], pch = 19)
+points(vH2[, 1], vH2[, 2], pch = 15) #good.
+
+
+physignal(phy = Hama2, A = YH2, iter = 1e4)
+
+plotTangentSpace(A = Y, label = TRUE, warpgrids = TRUE, verbose = FALSE) # PC1 = 37%, PC2 = 28%

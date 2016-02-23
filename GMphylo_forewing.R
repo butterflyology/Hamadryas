@@ -28,9 +28,9 @@ cu_color[cu == 0.5] <- "orange"
 cu_color[cu == 1] <- "dark green"
 cu_color[cu == 2] <- "black"
 
-
-# pdf(file = "FW_GMphylo_2a.pdf", bg = "white")
-plot(pcdata, type = "n", xlim = c(-0.081, 0.082), ylim = c(-0.05, 0.047), las = 1, xlab = "PC1 (46%)", ylab = "PC2 (24%)")
+# might want to rotate 
+# pdf(file = "FW_GMphylo_2a_2.pdf", bg = "white")
+plot(pcdata, type = "n", xlim = c(-0.051, 0.051), ylim = c(-0.035, 0.06), las = 1, xlab = "PC1 (37%)", ylab = "PC2 (28%)")
 
 # plot(pcdata, type = "n", xlim = c(-0.08, 0.08), ylim = c(-0.05, 0.05), las = 1, asp = 1) force the 1:1 aspect ratio
 
