@@ -3,6 +3,7 @@
 library("geomorph") 
 library("phytools") 
 library("geiger") 
+library("dplyr")
 
 setwd("~/Desktop/Projects/Hamadryas/Hama_data")
 
@@ -38,7 +39,7 @@ fore <- readland.tps("dorsal_data/Hama_dorsal_3_aligned.TPS", specID = "ID")
 str(fore)
 dim(fore) # 50 landmarks with X & Y coordinates, for 71 samples
 
-# conduct generalized Procrustes superimposition
+## conduct generalized Procrustes superimposition
 fore_gpa <- gpagen(A = fore, Proj = TRUE, ProcD = TRUE, ShowPlot = TRUE) # used Procrustes distance for sliding in TPSrelW
 fw <- two.d.array(fore_gpa$coords)
 dim(fw)
@@ -46,7 +47,19 @@ table(rownames(fw))
 match(Hama2$tip.label, row.names(fw)) # confirm names in tree and data match
 
 
-### Now calculate mean shapet because we can only use one indidivual per species.
+# plot lda by species
+fw.pc <- prcomp(fw)
+summary(fw.pc)
+
+fw.pc.shape <- cbind(rownames(fw), fw.pc$x[, 1:67]) # remove final 4 dimensions because they are empty.
+head(fw.pc.shape)
+dim(fw.pc.shape)
+
+fw.lda <- lda(as.matrix(fw.pc.shape[, 2:68]), as.factor(fw.pc.shape[, 1]), method = "mle")
+
+
+
+## Now calculate mean shapet because we can only use one indidivual per species.
 
 groupF <- as.factor(unique(rownames(fw)))
 
@@ -88,6 +101,84 @@ plot(YF[, 1, ], YF[, 2, ], pch = 19)
 points(YF[1:6, 1, ], YF[1:6, 2, ], col = "red", pch = 19) #edge of wing
 points(YF[7:33, 1, ], YF[7:33, 2, ], pch = 19, col = "Dodgerblue") # leading edge
 points(YF[34:50, 1, ], YF[34:50, 2, ], pch = 19, col = "dark green")# trailing edge points
+
+## Import forewing centroid size data
+fore_cs <- read.delim("dorsal_data/Hama_dorsal_3_centroid.txt", sep = "\t", header = TRUE)
+head(fore_cs)
+fore_cs
+table(fore_cs$species)
+
+t1 <- fore_cs %>% group_by(species) %>% summarize(mean_csize = mean(csize))
+t1
+fw_cs <- matrix(t1$mean_csize, dimnames = list(t1$species))
+fw_cs <- fw_cs[-4, ]
+
+fw_cs <- fw_cs[Hama2$tip.label]
+fw_cs 
+
+# phylogenetic signal for centroid size
+physignal(phy = Hama2, A = fw_cs, iter = 1e4)
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Import hind wing data
+hind <- readland.tps("ventral_data/Hama_vent_3.tps", specID = "ID")
+str(hind)
+dim(hind)
+
+hind_gpa <- gpagen(A = hind, Proj = TRUE, ProcD = TRUE, ShowPlot = TRUE) # used Procrustes distance for sliding in TPSrelW
+hw <- two.d.array(hind_gpa$coords)
+dim(hw)
+table(rownames(hw))
+match(Hama2$tip.label, row.names(hw)) # confirm names in tree and data match
+
+groupH <- as.factor(unique(rownames(hw)))
+
+p2 <- dim(hind_gpa$coords)[1]
+k2 <- dim(hind_gpa$coords)[2]
+YH2 <- array(NA, dim = c(p, k, length(levels(groupH))))
+dimnames(YH2)[[3]] <- levels(groupH)
+dim(YH2)
+
+for(i in 1:length(levels(groupH))){
+	grp <- fw[which(group == levels(groupH)[i]), ]
+	foo <- arrayspecs(grp, p, k)
+	YH2[, , i] <- mshape(foo)
+}
+YH2
+dim(YH2)
+plot(YH2[, 1, ], YH2[, 2, ], pch = 19)
+
+YHb <- two.d.array(Y)
+head(YHb)
+dim(YHb)
+
+# I think that my function worked correctly, but I want to be super duper extra safe, so I'm going to double check. 
+velutinaH <- hw[c(17, 68:70), ]
+vH1 <- arrayspecs(velutinaH, p = 50, k = 2)
+vH2 <- mshape(vH1)
+
+plot(YH2[, , "velutina"], pch = 19)
+points(vH2[, 1], vH2[, 2], pch = 15) #good.
+
+
+physignal(phy = Hama2, A = YH2, iter = 1e4)
+
+plotTangentSpace(A = Y, label = TRUE, warpgrids = TRUE, verbose = FALSE) # PC1 = 37%, PC2 = 28%
+
+
+
+
 
 
 ### enter covariate data
@@ -149,18 +240,6 @@ cuf <- H.range[Hama2$tip.label]
 (fw_range_rate2 <- compare.evol.rates(phy = Hama2, A = Y, gp = H.range, iter = 1e4))
 
 
-# Import cetroid sizes for forewing
-fore_cs <- read.delim("dorsal_data/Hama_dorsal_3_centroid.txt", sep = "\t", header = TRUE)
-head(fore_cs)
-fore_cs
-table(fore_cs$species)
-
-t1 <- fore_cs %>% group_by(species) %>% summarize(mean_csize = mean(csize))
-t1
-fw_cs <- matrix(t1$mean_csize, dimnames = list(t1$species))
-fw_cs <- fw_cs[-1,]
-
-fw_cs <- fw_cs[Hama2$tip.label]
 
 
 ## test for phylogenetic signal
@@ -347,49 +426,3 @@ segments(x0 = 0.239, x1 = 0.36, y0 = 16.6, y1 = 16.6, lty = 1, lwd = 2)
 
 
 #####
-##### Hind wing 
-#####
-
-hind <- readland.tps("ventral_data/Hama_vent_3.tps", specID = "ID")
-str(hind)
-dim(hind)
-
-hind_gpa <- gpagen(A = hind, Proj = TRUE, ProcD = TRUE, ShowPlot = TRUE) # used Procrustes distance for sliding in TPSrelW
-hw <- two.d.array(hind_gpa$coords)
-dim(hw)
-table(rownames(hw))
-match(Hama2$tip.label, row.names(hw)) # confirm names in tree and data match
-
-groupH <- as.factor(unique(rownames(hw)))
-
-p2 <- dim(hind_gpa$coords)[1]
-k2 <- dim(hind_gpa$coords)[2]
-YH2 <- array(NA, dim = c(p, k, length(levels(groupH))))
-dimnames(YH2)[[3]] <- levels(groupH)
-dim(YH2)
-
-for(i in 1:length(levels(groupH))){
-	grp <- fw[which(group == levels(groupH)[i]), ]
-	foo <- arrayspecs(grp, p, k)
-	YH2[, , i] <- mshape(foo)
-}
-YH2
-dim(YH2)
-plot(YH2[, 1, ], YH2[, 2, ], pch = 19)
-
-YHb <- two.d.array(Y)
-head(YHb)
-dim(YHb)
-
-# I think that my function worked correctly, but I want to be super duper extra safe, so I'm going to double check. 
-velutinaH <- hw[c(17, 68:70), ]
-vH1 <- arrayspecs(velutinaH, p = 50, k = 2)
-vH2 <- mshape(vH1)
-
-plot(YH2[, , "velutina"], pch = 19)
-points(vH2[, 1], vH2[, 2], pch = 15) #good.
-
-
-physignal(phy = Hama2, A = YH2, iter = 1e4)
-
-plotTangentSpace(A = Y, label = TRUE, warpgrids = TRUE, verbose = FALSE) # PC1 = 37%, PC2 = 28%
