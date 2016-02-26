@@ -4,6 +4,7 @@ library("geomorph")
 library("phytools") 
 library("geiger") 
 library("dplyr")
+library("plyr")
 
 setwd("~/Desktop/Projects/Hamadryas/Hama_data")
 
@@ -46,6 +47,7 @@ dim(fw)
 table(rownames(fw))
 match(Hama2$tip.label, row.names(fw)) # confirm names in tree and data match
 
+plotTangentSpace(fore_gpa$coords, label = TRUE)
 
 # plot lda by species
 fw.pc <- prcomp(fw)
@@ -117,7 +119,7 @@ fw_cs <- fw_cs[Hama2$tip.label]
 fw_cs 
 
 # phylogenetic signal for centroid size
-physignal(phy = Hama2, A = fw_cs, iter = 1e4)
+physignal(phy = Hama2, A = fw_cs, iter = 1e4, method = "Kmult")
 
 
 
@@ -144,37 +146,61 @@ match(Hama2$tip.label, row.names(hw)) # confirm names in tree and data match
 
 groupH <- as.factor(unique(rownames(hw)))
 
-p2 <- dim(hind_gpa$coords)[1]
-k2 <- dim(hind_gpa$coords)[2]
-YH2 <- array(NA, dim = c(p, k, length(levels(groupH))))
-dimnames(YH2)[[3]] <- levels(groupH)
-dim(YH2)
+pH <- dim(hind_gpa$coords)[1]
+kH <- dim(hind_gpa$coords)[2]
+YH <- array(NA, dim = c(pH, kH, length(levels(groupH))))
+dimnames(YH)[[3]] <- levels(groupH)
+dim(YH)
 
 for(i in 1:length(levels(groupH))){
-	grp <- fw[which(group == levels(groupH)[i]), ]
-	foo <- arrayspecs(grp, p, k)
-	YH2[, , i] <- mshape(foo)
+	grpH <- hw[which(groupH == levels(groupH)[i]), ]
+	fooH <- arrayspecs(grpH, pH, kH)
+	YH[, , i] <- mshape(fooH)
 }
-YH2
-dim(YH2)
-plot(YH2[, 1, ], YH2[, 2, ], pch = 19)
+YH
+dim(YH)
+plot(YH[, 1, ], YH[, 2, ], pch = 19)
 
-YHb <- two.d.array(Y)
-head(YHb)
-dim(YHb)
+YH2d <- two.d.array(YH)
+head(YH2d)
+dim(YH2d)
 
 # I think that my function worked correctly, but I want to be super duper extra safe, so I'm going to double check. 
 velutinaH <- hw[c(17, 68:70), ]
 vH1 <- arrayspecs(velutinaH, p = 50, k = 2)
 vH2 <- mshape(vH1)
 
-plot(YH2[, , "velutina"], pch = 19)
+plot(YH[, , "velutina"], pch = 19)
 points(vH2[, 1], vH2[, 2], pch = 15) #good.
 
 
-physignal(phy = Hama2, A = YH2, iter = 1e4)
+physignal(phy = Hama2, A = YH, iter = 1e4, method = "Kmult")
 
-plotTangentSpace(A = Y, label = TRUE, warpgrids = TRUE, verbose = FALSE) # PC1 = 37%, PC2 = 28%
+plotTangentSpace(A = YH, label = TRUE, warpgrids = TRUE, verbose = FALSE) # PC1 = 37%, PC2 = 28%
+
+# hind wing centroid size
+hind_gpa$Csize
+
+
+hind_cs <- as.data.frame(names(hind_gpa$Csize))
+
+hind_cs$Csize <- (hind_gpa$Csize)
+hind_cs <- rename(hind_cs, c("names(hind_gpa$Csize)" = "species"))
+hind_cs
+table(hind_cs$species)
+
+t2 <- hind_cs %>% group_by(species) %>% summarize(mean_csize = mean(Csize))
+t2
+
+
+
+hw_cs <- matrix(t1$mean_csize, dimnames = list(t2$species))
+hw_cs <- fw_cs[-4, ]
+
+fw_cs <- fw_cs[Hama2$tip.label]
+fw_cs 
+
+
 
 
 
@@ -277,29 +303,6 @@ plotGMPhyloMorphoSpace(phy = Hama2, A = fore_gpa$coords)
 
 
 
-#### Hind wing
-hind <- readland.tps("ventral_data/Hama_hind_struc.tps", specID = "ID")
-str(hind)
-dim(hind) # 12 landmarks with X & Y for 17 individuals
-
-hind_gpa <- gpagen(A = hind, Proj = TRUE, ProcD = TRUE, ShowPlot = TRUE)
-hw <- two.d.array(hind_gpa$coords)
-match(Hama2$tip.label, row.names(hw))
-match(row.names(fw), row.names(hw))
-
-hw_cs <- matrix(hind_gpa$Csize, dimnames = list(names(hind_gpa$Csize)))
-
-# phylogenetic signal
-(hw_ps <- physignal(phy = Hama2, A = hw, iter = 1e4, method = "Kmult")) # hw shape is not randomly distributed through the tree
-
-(hw_cs_ps <- physignal(phy = Hama2, A = hw_cs, iter = 1e4, 
-	method = "Kmult")) # hindwing centroid size (as a proxy for size) is randomly distributed through the phylogeny, though shape is not.
-
-plotTangentSpace(A = hind_gpa$coords, label = TRUE) # PC1 (54%), PC2 (16%)
-
-plotGMPhyloMorphoSpace(phy = Hama2, A = hind_gpa$coords, labels = TRUE)
-
-
 ##### Now the real comparative stuff
 
 # pdf(file = "Hama_hab_tree.pdf", bg = "white")
@@ -326,8 +329,7 @@ contMap(Hama.pruned$phy, x = cu1, res = 1000, type = "fan", legend = FALSE)
 
 ##########
 # Accounting for phlyogeny, are fore- and hind-wing "integrated"?
-(F_H_pls <- phylo.pls(A1 = fore_gpa$coords, A2 = hind_gpa$coords, 
-	phy = Hama2, warpgrids = TRUE, iter = 1e4)) # even when correcting for phylogeny there is no association
+(F_H_pls <- phylo.pls(A1 = YF, A2 = YH, phy = Hama2, warpgrids = TRUE, iter = 1e4)) # even when correcting for phylogeny there is no association
 
 # examine correlations of characters within wings as well
 plotAllSpecimens(fore_gpa$coords, mean = TRUE)
