@@ -3,6 +3,7 @@
 library("geomorph") 
 library("phytools") 
 library("geiger") 
+library("MASS")
 library("dplyr")
 library("plyr")
 
@@ -42,23 +43,22 @@ dim(fore) # 50 landmarks with X & Y coordinates, for 71 samples
 
 ## conduct generalized Procrustes superimposition
 fore_gpa <- gpagen(A = fore, Proj = TRUE, ProcD = TRUE, ShowPlot = TRUE) # used Procrustes distance for sliding in TPSrelW
+plotOutliers(fore_gpa$coords)
 fw <- two.d.array(fore_gpa$coords)
 dim(fw)
 table(rownames(fw))
 match(Hama2$tip.label, row.names(fw)) # confirm names in tree and data match
 
+# pdf(file = "FW-pca.pdf", bg = "white")
 plotTangentSpace(fore_gpa$coords, label = TRUE)
+# dev.off()
 
-# plot lda by species
-fw.pc <- prcomp(fw)
-summary(fw.pc)
 
-fw.pc.shape <- cbind(rownames(fw), fw.pc$x[, 1:67]) # remove final 4 dimensions because they are empty.
-head(fw.pc.shape)
-dim(fw.pc.shape)
-
-fw.lda <- lda(as.matrix(fw.pc.shape[, 2:68]), as.factor(fw.pc.shape[, 1]), method = "mle")
-
+dn <- matrix(data = NA, nrow = 71, ncol = 2)
+dn[, 1] <- seq(1:length(fore_gpa$Csize))
+dn[, 2] <- fore_gpa$Csize
+rownames(dn) <- names(fore_gpa$Csize)
+dn
 
 
 ## Now calculate mean shapet because we can only use one indidivual per species.
@@ -94,7 +94,9 @@ points(v2F[, 1], v2F[, 2], pch = 15) #good.
 
 physignal(phy = Hama2, A = YF, iter = 1e4)
 
-plotTangentSpace(A = YF, label = TRUE, warpgrids = TRUE, verbose = FALSE) # PC1 = 37%, PC2 = 28%
+# pdf(file = "FW-species.pdf", bg = "white")
+plotTangentSpace(A = YF, label = TRUE) # PC1 = 37%, PC2 = 28%
+# dev.off()
 
 plotGMPhyloMorphoSpace(phy = Hama2, A = YF) 
 
