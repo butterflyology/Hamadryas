@@ -8,7 +8,7 @@ library("geiger")
 
 setwd("~/Desktop/Projects/Hamadryas/Hama_data")
 
-# save(list = ls(), file = "Hama_data_1.R")
+# save(list = ls(), file = "Hama_data_1.Rdata")
 load("Hama_data_1.R")
 
 Hama <- read.nexus("../Tree_data/Hamydryas_ml.tre")
