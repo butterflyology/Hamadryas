@@ -1,14 +1,14 @@
-x <- two.d.array(fore_gpa$coords)
+#two.d array = YF2d
 
-N <- length(Hama2$tip.label)
+N <- length(rownames(YF2d))
 
-x <- x[Hama2$tip.label, ]
+x <- YF2d[Hama2$tip.label, ]
 names <- row.names(x)
 anc.states <- NULL
     
 for (i in 1:ncol(x)) {
     options(warn = -1)
-    tmp <- as.vector(fastAnc(Hama2, x[, i]))
+    tmp <- as.vector(fastAnc(Hama2, YF2d[, i]))
     anc.states <- cbind(anc.states, tmp)
 }
 colnames(anc.states) <- NULL
@@ -16,21 +16,21 @@ row.names(anc.states) <- 1:length(tmp)
 all.data <- rbind(x, anc.states)
 pcdata <- prcomp(all.data)$x
 
-cu <- c(2, 0, 0.5, 0.5, 0, 0.5, 0, 0, 0, 0.5, 0.5, 0, 0, 0 , 2, 1, 1)
+cu.f <- c(0, 0, 2, 0, 0.5, 0, 0, 0, 2, 0, 0, 0.5, 1, 1 , 0.5, 0.5, 0.5)
 
-cu <- matrix(cu, dimnames = list(names(hind_gpa$Csize)))
-cu <- cu[Hama2$tip.label, ]
+cu.f <- matrix(cu.f, dimnames = list(rownames(x)))
+cu.f <- cuf[Hama2$tip.label, ]
 
 
-cu_color <- cu
-cu_color[cu == 0] <- "brown"
-cu_color[cu == 0.5] <- "orange"
-cu_color[cu == 1] <- "dark green"
-cu_color[cu == 2] <- "black"
+cu_color <- cuf
+cu_color[cu.f == 0] <- "brown"
+cu_color[cu.f == 0.5] <- "orange"
+cu_color[cu.f == 1] <- "dark green"
+cu_color[cu.f == 2] <- "black"
 
 # might want to rotate 
-# pdf(file = "FW_GMphylo_2a_2.pdf", bg = "white")
-plot(pcdata, type = "n", xlim = c(-0.051, 0.051), ylim = c(-0.035, 0.06), las = 1, xlab = "PC1 (37%)", ylab = "PC2 (28%)")
+# pdf(file = "../Hama_figures/FW_GMphylo_2a_2.pdf", bg = "white")
+plot(pcdata, type = "n", xlim = c(-0.051, 0.04), ylim = c(-0.035, 0.06), las = 1, xlab = "PC1 (37%)", ylab = "PC2 (28%)")
 
 # plot(pcdata, type = "n", xlim = c(-0.08, 0.08), ylim = c(-0.05, 0.05), las = 1, asp = 1) force the 1:1 aspect ratio
 

@@ -176,7 +176,7 @@ hw_cs
 ranges <- read.csv("Hamadryas_range.csv", header = TRUE, row.names = 1)
 ranges$Range <- as.factor(ranges$Range)
 str(ranges)
-# Small <= 50000; 50001 > Medium < 100000; 100001 > Large 
+hist(ranges$Pixels, col = "grey", breaks = "Scott", las = 1) # three breaks with the Scott method: Small <= 200000; 200001 > Medium < 400000; 400001 > Large 
 
 H.range <- matrix(ranges$Range, dimnames = list(row.names(ranges)))
 H.range <- as.factor(H.range)
@@ -201,15 +201,15 @@ plot(Hama.pruned$phy)
 #####
 
 ## Forewing
-physignal(phy = Hama2, A = YF, iter = 1e4, seed = 876234872) # K = 0.716, P << 0.001
+FW_sig <- physignal(phy = Hama2, A = YF, iter = 1e4, seed = 876234872) # K = 0.716, P << 0.001
 
 # phylogenetic signal for centroid size
-phylosig(tree = Hama2, x = fw_cs, nsim = 1e4, method = "K", test = TRUE) # K = 0.30, P = 0.856
+fw_cs_sig <- phylosig(tree = Hama2, x = fw_cs, nsim = 1e4, method = "K", test = TRUE) # K = 0.30, P = 0.856
 
 ## Hind wing
-physignal(phy = Hama2, A = YH, iter = 1e4, seed = 826342) # K = 0.8, P = 0.0018
+hw_sig <- physignal(phy = Hama2, A = YH, iter = 1e4, seed = 826342) # K = 0.8, P = 0.0018
 
-phylosig(tree = Hama2, x = hw_cs, nsim = 1e4, method = "K", test = TRUE) # K = 0.314, P = 0.81
+hw_cs_sig <- phylosig(tree = Hama2, x = hw_cs, nsim = 1e4, method = "K", test = TRUE) # K = 0.314, P = 0.81
 
 ## ancestral state reconstruction
 anc.ML(tree = Hama.pruned$phy, x = cu1, maxit = 1e4, model = "BM")
