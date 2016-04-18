@@ -204,12 +204,13 @@ plot(Hama.pruned$phy)
 FW_sig <- physignal(phy = Hama2, A = YF, iter = 1e4, seed = 876234872) # K = 0.716, P << 0.001
 
 # phylogenetic signal for centroid size
-fw_cs_sig <- phylosig(tree = Hama2, x = fw_cs, nsim = 1e4, method = "K", test = TRUE) # K = 0.30, P = 0.856
+fw_cs_sig <- physignal(phy = Hama2, A = as.matrix(fw_cs), iter = 1e4, seed = 731427) # K = 0.30, P = 0.856
+
 
 ## Hind wing
 hw_sig <- physignal(phy = Hama2, A = YH, iter = 1e4, seed = 826342) # K = 0.8, P = 0.0018
 
-hw_cs_sig <- phylosig(tree = Hama2, x = hw_cs, nsim = 1e4, method = "K", test = TRUE) # K = 0.314, P = 0.81
+hw_cs_sig <- physignal(phy = Hama2, A = as.matrix(hw_cs), iter = 1e4, seed = 6445) # K = 0.314, P = 0.81
 
 ## ancestral state reconstruction
 anc.ML(tree = Hama.pruned$phy, x = cu1, maxit = 1e4, model = "BM")
@@ -223,12 +224,9 @@ contMap(Hama.pruned$phy, x = cu1, res = 1000, type = "fan", legend = FALSE)
 # dev.off()
 
 
-
-
-
 ## phlyogenetic morphological covartiation
 # leading and trailing edge of FW
-LE_TE_pls2 <- phylo.integration(A = YF[7:33, , ], A2 = YF[34:50, , ], phy = Hama2, iter = 1e4, seed = 98234) # r-PLS = 0.867, P = 0.001
+LE_TE_pls <- phylo.integration(A = YF[7:33, , ], A2 = YF[34:50, , ], phy = Hama2, iter = 1e4, seed = 98234) # r-PLS = 0.867, P = 0.001
 
 # internal and terminal (vein) of HW
 HW_pls <- phylo.integration(A = YH[1:6, , ], A2 = YH[7:12, , ],	phy = Hama2, iter = 1e4, seed = 876234) # r-pls = 0.94, P = <<0.001
@@ -239,20 +237,28 @@ FW_HW <- phylo.integration(A = YF, A2 = YH, phy = Hama2, iter = 1e4, seed = 9873
 
 ### compare rate of morphological change
 ## Forewing
-# change rate based on range size
-fw_range_rate <- compare.evol.rates(phy = Hama2, A = YF, gp = H.range, iter = 1e4) # no sig difference in FW rates based on habitat size 
-
 # change rate based on habitat
 fw_habitat_rate <- compare.evol.rates(phy = Hama2, A = YF, gp = cu1, iter = 1e4) # no association with habitat
 
+fwcs_habitat_rate <- compare.evol.rates(phy = Hama2, A = as.matrix(fw_cs), gp = cu1, iter = 1e4)
+
+
+# change rate based on range size
+fw_range_rate <- compare.evol.rates(phy = Hama2, A = YF, gp = H.range, iter = 1e4) # no sig difference in FW rates based on habitat size 
+
+fwcs_range_rate <- compare.evol.rates(phy = Hama2, A = as.matrix(fw_cs), gp = H.range, iter = 1e4)
 
 ## hind wing
+# rate of HW change based on habitat
+Hw_habitat_rate <- compare.evol.rates(phy = Hama2, A = YH, gp = cu1, iter = 1e4)  # Yup. HW has different rates based on habitat
+
+Hwcs_habitat_rate <- compare.evol.rates(phy = Hama2, A = as.matrix(hw_cs), gp = cu1, iter = 1e4)
+
+
 # rate of HW change based on range
 Hw_range_rate <- compare.evol.rates(phy = Hama2, A = YH, gp = H.range, iter = 1e4) # HW rate is sig fast
 
-# rate of HW change based on habitat
-Hw_habitat_rate <- compare.evol.rates(phy = Hama2, A = YH, gp = cu1, iter = 1e4) # Yup. HW has different rates based on habitat
-
+Hwcs_range_rate <- compare.evol.rates(phy = Hama2, A = as.matrix(hw_cs), gp = H.range, iter = 1e4)
 
 
 ## making plots
