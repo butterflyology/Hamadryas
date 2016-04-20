@@ -235,28 +235,56 @@ HW_pls <- phylo.integration(A = YH[1:6, , ], A2 = YH[7:12, , ],	phy = Hama2, ite
 FW_HW <- phylo.integration(A = YF, A2 = YH, phy = Hama2, iter = 1e4, seed = 987324) # r-pls = 0.85, P = 0.0028
 
 
+#fore- and hind wing csize covariation? 
+#standard phylogenetic regression
+plot(x = hw_cs, y = fw_cs, pch = 19, las = 1)
+fw_pic <- pic(fw_cs, phy = Hama2, scaled = TRUE)
+hw_pic <- pic(hw_cs, phy = Hama2, scaled = TRUE)
+m1 <- lm(fw_pic ~ hw_pic)
+summary(m1)
+
+plot(x = hw_pic, y = fw_pic, pch = 19, las = 1)
+abline(m1, lwd = 3, lty = 3)
+
+#phylogenetic regression through the origin
+lm01 <- lmorigin(fw_pic ~ hw_pic, nperm = 1e4)
+lm01
+
+
+
 ### compare rate of morphological change
 ## Forewing
 # change rate based on habitat
 fw_habitat_rate <- compare.evol.rates(phy = Hama2, A = YF, gp = cu1, iter = 1e4) # no association with habitat
+fw_habitat_rate
+fw_habitat_rate$pairwise.pvalue
 
 fwcs_habitat_rate <- compare.evol.rates(phy = Hama2, A = as.matrix(fw_cs), gp = cu1, iter = 1e4)
-
+fwcs_habitat_rate
+fwcs_habitat_rate$pairwise.pvalue
 
 # change rate based on range size
 fw_range_rate <- compare.evol.rates(phy = Hama2, A = YF, gp = H.range, iter = 1e4) # no sig difference in FW rates based on habitat size 
+fw_range_rate
+fw_range_rate$pairwise.pvalue
 
 fwcs_range_rate <- compare.evol.rates(phy = Hama2, A = as.matrix(fw_cs), gp = H.range, iter = 1e4)
+fwcs_range_rate
+fwcs_range_rate$pairwise.pvalue
 
 ## hind wing
 # rate of HW change based on habitat
 Hw_habitat_rate <- compare.evol.rates(phy = Hama2, A = YH, gp = cu1, iter = 1e4)  # Yup. HW has different rates based on habitat
+Hw_habitat_rate
+Hw_habitat_rate$pairwise.pvalue
 
 Hwcs_habitat_rate <- compare.evol.rates(phy = Hama2, A = as.matrix(hw_cs), gp = cu1, iter = 1e4)
 
 
 # rate of HW change based on range
 Hw_range_rate <- compare.evol.rates(phy = Hama2, A = YH, gp = H.range, iter = 1e4) # HW rate is sig fast
+Hw_range_rate
+Hw_range_rate$pairwise.pvalue
 
 Hwcs_range_rate <- compare.evol.rates(phy = Hama2, A = as.matrix(hw_cs), gp = H.range, iter = 1e4)
 
