@@ -1,17 +1,21 @@
 ---
-title: "*Hamadryas*  Geomorph"
+title: ""
 author: "C. A. Hamm"
 date: "`r format(Sys.Date())`"
 output: 
   html_document:
     keep_md: TRUE
+    toc: TRUE
+    toc_float: TRUE
+    number_sections: TRUE
 ---
-
-opts_chunk$set(fig.align = "center"))
-
-This is an R Markdown document version of the code for the Hamm, Penz and DeVries manuscript:
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echot = TRUE, fig.align = "center")
+```
 
 **Wing shape evolution in *Hamadryas* butterflies corresponds to vertical microhabitat use and species range size**
+
+This document is an `RMarkdown` version of the code for the Hamm, Penz and DeVries manuscript:
 
 ```{r load package}
 library("geomorph")
@@ -20,17 +24,20 @@ library("geiger")
 library("spaceMovie")
 ```
 
-### Read in phylogeny
+# Prepare data 
+
+## Import *Hamadryas* phylogeny
 
 ```{r read_tree}
 Hama <- read.nexus("../Data/Hamydryas_ml.tre")
 plot(Hama)
 is.ultrametric(Hama)
 ```
-#### make tree ultrametric, lamdba is the smoothing parameter. 
+
+## Make tree ultrametric
 
 ```{r lambda, include = TRUE, results = "hide"}
-lam <- 10^(-1:6)
+lam <- 10^(-1:6) # lamdba is the smoothing parameter. 
 cv <- sapply(lam, function(x) sum(attr(chronopl(Hama, lambda = x, CV = TRUE), "D2")))
 plot(lam, cv, pch = 19, ylab = "cross-validation score", 
 	xlab = expression(paste(lambda)), las = 1, cex = 1.5) # lowest CV is 0.1
@@ -39,10 +46,9 @@ Hama2 <- chronopl(phy = Hama, lambda = 0.1, CV = TRUE, eval.max = 1e3, iter.max 
 is.ultrametric(Hama2) # Tree is now ultrametric
 ```
 
+## Import *forewing* data
 
-### Import **forewing** data
-
-```{r import_forewing}
+```{r import_forewing, include = TRUE, results = "hide"}
 fore <- readland.tps("../Data/Hama_dorsal_3_aligned.tps",	specID = "ID")
 str(fore)
 dim(fore) # 50 landmarks with X & Y coordinates, for 71 samples
@@ -56,17 +62,38 @@ table(rownames(fw))
 match(Hama2$tip.label, row.names(fw)) # confirm names in tree and data match
 ```
 
+## Import *hind wing* data
+
+```{r import_hind, include = TRUE, results = "hide"}
+hind <- readland.tps("../Data/Hama_vent_3.tps", specID = "ID")
+str(hind)
+dim(hind)
+
+hind_gpa <- gpagen(A = hind, PrinAxes = FALSE, Proj = TRUE, ProcD = TRUE, max.iter = 1e4, print.progress = FALSE) # used Procrustes distance for sliding in TPSrelW
+
+plotOutliers(hind_gpa$coords) # laodamia and velutina ARE weird (found exclusively in the canopy), chloe is the earliest diverging taxon in our phylogeny and has weird looking hind wings
+
+hw <- two.d.array(hind_gpa$coords)
+dim(hw)
+table(rownames(hw))
+match(Hama2$tip.label, row.names(hw)) # confirm names in tree and data match
+
+groupH <- as.factor(unique(rownames(hw)))
+```
+
+# *Forewing* analysis 
+
+## Visualize data
 With the data read in, lets take a look at them
 ```{r fw_visualize, include = TRUE, results = "hide"}
 # examine correlations of characters within wings as well
 plotAllSpecimens(fore_gpa$coords, mean = TRUE)
 # str(fore_gpa)
 
-# pdf(file = "Output/FW-pca.pdf", bg = "white")
 plotTangentSpace(fore_gpa$coords, label = TRUE, warpgrids = TRUE) # PC1 40.8%, PC2 25.7%
-# dev.off()
 ```
 
+## Mean shape
 ```{r fw_mean_shape}
 # Now calculate mean shape because we can only use one indidivual per species.
 groupF <- as.factor(unique(rownames(fw)))
@@ -94,20 +121,18 @@ YF2d <- two.d.array(YF)
 dim(YF2d)
 
 # I think that my function worked correctly, but I want to be super duper extra safe, so I'm going to double check. 
-velutina <- fw[c(17, 68:70), ]
-v1F <- arrayspecs(velutina, p = 50, k = 2)
+velutina_fw <- fw[c(17, 68:70), ] # 4 velutina samples
+v1F <- arrayspecs(velutina_fw, p = 50, k = 2)
 v2F <- mshape(v1F)
 
-plot(YF[, , "velutina"], pch = 19)
-points(v2F[, 1], v2F[, 2], pch = 15) #good.
+plot(YF[, , "velutina"], pch = 19, las = 1, ylab = "", xlab = "")
+points(v2F[, 1], v2F[, 2], pch = 1, col = SW_palette("Inquisitor")[1]) # good, the points match up!
 
 # Now a plot of mean shape by species
-# pdf(file = "Output/FW-species.pdf", bg = "white")
 plotTangentSpace(A = YF, label = TRUE) # PC1 = 37%, PC2 = 28%
-# dev.off()
 ```
 
-Now we can look at how shape and phylogeny interplay
+## Phylomorphospace
 ```{r fw_phylo}
 plotGMPhyloMorphoSpace(phy = Hama2, A = YF, ancStates = FALSE) 
 ```
@@ -118,15 +143,16 @@ Here we set up the forewing data into three partitions:
 1. outer margin
 1. trailing edge
 
-We want to confirm the landmarks correspond with each partition
+## Sanity check
 ```{r fw_partitions}
-# Now confirm the set of landmarks that correspond to leading, outer, and trailing edge of the wing. 
+# Now confirm the set of landmarks that correspond to leading, outer, and trailing edge of the wing. The circles should perfectly overlap if I am properly delimiting the data.
 plot(YF[, 1, ], YF[, 2, ], pch = 19)
-points(YF[1:6, 1, ], YF[1:6, 2, ], col = SW_palette("Zeb")[3], pch = 19) # outer margin of wing
-points(YF[7:33, 1, ], YF[7:33, 2, ], pch = 19, col = SW_palette("Zeb")[4]) # leading edge
-points(YF[34:50, 1, ], YF[34:50, 2, ], pch = 19, col = SW_palette("Zeb")[1])# trailing edge points
+points(YF[1:6, 1, ], YF[1:6, 2, ], col = SW_palette("Zeb")[3], pch = 1) # outer margin of wing
+points(YF[7:33, 1, ], YF[7:33, 2, ], pch = 1, col = SW_palette("Zeb")[4]) # leading edge
+points(YF[34:50, 1, ], YF[34:50, 2, ], pch = 1, col = SW_palette("Zeb")[1]) # trailing edge points
 ```
 
+## Centroid size
 ```{r fw_centroids}
 ## Import forewing centroid size data
 fore_cs <- read.delim("../Data/Hama_dorsal_3_centroid.txt", sep = "\t", header = TRUE)
@@ -142,25 +168,16 @@ fw_cs <- fw_cs[Hama2$tip.label] #make sure the labels are in the same order as t
 fw_cs 
 ```
 
+# *Hind wing* analyses 
 
-### Import hind wing data
+## Visualize data
+```{r hw_visualize}
+plotAllSpecimens(hind_gpa$coords, mean = TRUE)
 
-```{r import_hind}
-hind <- readland.tps("../Data/Hama_vent_3.tps", specID = "ID")
-str(hind)
-dim(hind)
-
-hind_gpa <- gpagen(A = hind, PrinAxes = FALSE, Proj = TRUE, ProcD = TRUE, max.iter = 1e4, print.progress = FALSE) # used Procrustes distance for sliding in TPSrelW
-hw <- two.d.array(hind_gpa$coords)
-dim(hw)
-table(rownames(hw))
-match(Hama2$tip.label, row.names(hw)) # confirm names in tree and data match
-
-groupH <- as.factor(unique(rownames(hw)))
+plotTangentSpace(hind_gpa$coords, label = TRUE, warpgrids = TRUE)
 ```
 
-#### Calculate mean shape for hw
-
+## Mean shape
 ```{r hw_mean_shape}
 pH <- dim(hind_gpa$coords)[1]
 kH <- dim(hind_gpa$coords)[2]
@@ -181,19 +198,31 @@ YH2d <- two.d.array(YH)
 #head(YH2d)
 dim(YH2d)
 
-plotTangentSpace(A = YH, label = TRUE, warpgrids = TRUE) # PC1 = 60%, PC2 = 14%
+# Let's make sure that the above function calulated a mean that looks like the mean calculated for one species by `geomorph`.
+velutina_hw <- hw[c(17, 69:71), ] # The 4 velutina samples
+v1H <- arrayspecs(velutina_hw, p = 12, k = 2)
+v2H <- mshape(v1H)
+
+plot(YH[, , "velutina"], pch = 19, las = 1, ylab = "", xlab = "")
+points(v2H[, 1], v2H[, 2], pch = 1, add = TRUE, col = SW_palette("Inquisitor")[1]) # Points match up
 ```
 
-Now we can look at how shape and phylogeny interplay
+## Phylomorphospace
 ```{r Hw_phylo}
 plotGMPhyloMorphoSpace(phy = Hama2, A = YH, ancStates = FALSE) 
 ```
 
-#### hind wing centroid size
+## Sanity check
+```{r HW_sanity}
+# Now confirm the set of landmarks that correspond to the structural and outer margins of the wings. The circles should perfectly overlap if I am properly delimiting the data. 
+plot(YH[, 1, ], YH[, 2, ], pch = 19, ylab = "", xlab = "", las = 1)
+points(YH[1:6, 1, ], YH[1:6, 2, ], col = SW_palette("Chopper")[1], pch = 1, add = TRUE) # structural landmarks
+points(YH[7:12, 1, ], YH[7:12, 2, ], ylab = "", xlab = "", col = SW_palette("AT_DP")[3], pch = 1, add = TRUE) # wing maring landmarks
+```
 
+## Centroid size
 ```{r hw_centroids}
 #hind_gpa$Csize
-
 hind_cs <- as.data.frame(names(hind_gpa$Csize))
 
 hind_cs$Csize <- (hind_gpa$Csize)
@@ -208,14 +237,15 @@ hw_cs <- hw_cs[Hama2$tip.label] #make sure the labels are in the same order as t
 hw_cs 
 ```
 
+# Comparative analyses 
 
-### enter covariate data
+## Covariate data
 ```{r covariate_data}
 # import range data
 ranges <- read.csv("../Data/Hamadryas_range.csv", header = TRUE, row.names = 1)
 ranges$Range <- as.factor(ranges$Range)
 str(ranges)
-hist(ranges$Pixels, col = "grey", breaks = "Scott", las = 1, main = "") # three breaks with the Scott method: Small <= 200000; 200001 > Medium < 400000; 400001 > Large 
+hist(ranges$Pixels, col = "grey", breaks = "Scott", las = 1, main = "", xlab = "# of pixels") # three breaks with the Scott method: Small <= 200000; 200001 < Medium >= 400000; 400001 >= Large 
 
 H.range <- matrix(ranges$Range, dimnames = list(row.names(ranges)))
 H.range <- as.factor(H.range)
@@ -235,9 +265,7 @@ Hama.pruned <- treedata(phy = Hama2, data = cu1, sort = TRUE, warnings = TRUE) #
 plot(Hama.pruned$phy)
 ```
 
-
-### The comparative methods analysis
-
+## Comparative methods
 ```{r comparative_analysis}
 ## Phylogenetic signal for forewing shape
 FW_sig <- physignal(phy = Hama2, A = YF, iter = 1e4, seed = 876234872, print.progress = FALSE) # K = 0.716, P << 0.001, FW shape is associated with phylogeny
@@ -252,23 +280,19 @@ hw_sig <- physignal(phy = Hama2, A = YH, iter = 1e4, seed = 826342, print.progre
 hw_cs_sig <- physignal(phy = Hama2, A = as.matrix(hw_cs), iter = 1e4, seed = 6445, print.progress = FALSE) # K = 0.314, P = 0.81, no significant signal for HW centroid size
 ```
 
+## Ancestral state reconstruction
 ```{r ASR}
 # ancestral state reconstruction
 anc.ML(tree = Hama.pruned$phy, x = cu1, maxit = 1e4, model = "BM")
 
 fastAnc(tree = Hama.pruned$phy, x = cu1, vars = TRUE, CI = TRUE)# pretty much same estimates for both ASR methods
 
-# pdf(file = "Hama_FastAnc.pdf", bg = "white") 
 contMap(Hama.pruned$phy, x = cu1, res = 1000)
-dev.off()
 
-#pdf(file = "Output/Hama_fan.pdf", bg = "white")
 contMap(Hama.pruned$phy, x = cu1, res = 1000, type = "fan", legend = FALSE)
-#dev.off()
 ```
 
-
-### Phlyogenetic morphological covartiation
+## Phylogenetic integration
 ```{r morph_covar}
 # leading and trailing edge of FW
 LE_TE_pls <- phylo.integration(A = YF[7:33, , ], A2 = YF[34:50, , ], phy = Hama2, iter = 1e4, seed = 98234, print.progress = FALSE) # r-PLS = 0.867, P = 0.001
@@ -280,6 +304,7 @@ HW_pls <- phylo.integration(A = YH[1:6, , ], A2 = YH[7:12, , ],	phy = Hama2, ite
 FW_HW <- phylo.integration(A = YF, A2 = YH, phy = Hama2, iter = 1e4, seed = 987324, print.progress = FALSE) # r-pls = 0.85, P = 0.0028
 ```
 
+## Phylogenetic independent constrast
 ```{r pic}
 #fore- and hind wing csize covariation? 
 #standard phylogenetic regression
@@ -297,8 +322,7 @@ lm01 <- lmorigin(fw_pic ~ hw_pic, nperm = 1e4)
 lm01
 ```
 
-
-### Compare rate of morphological change
+## Rates of morphological change
 
 ```{r forewing_rates}
 # forewing, change rate based on habitat
@@ -319,7 +343,7 @@ fwcs_range_rate <- compare.evol.rates(phy = Hama2, A = as.matrix(fw_cs), gp = H.
 fwcs_range_rate # no association
 ```
 
-### hind wing
+## *Hind wing* change
 ```{r hind_wing_rates}
 # rate of HW change based on habitat
 Hw_habitat_rate <- compare.evol.rates(phy = Hama2, A = YH, gp = cu1, iter = 1e4, print.progress = FALSE)
@@ -338,8 +362,7 @@ Hw_range_rate$pairwise.pvalue
 Hwcs_range_rate <- compare.evol.rates(phy = Hama2, A = as.matrix(hw_cs), gp = H.range, iter = 1e4, print.progress = FALSE) # large and medium ranges are faster than small, large MUCH faster
 ```
 
-
-### making plots
+##  Habitat plot
 ```{r plots}
 nspecies <- length(Hama2$tip.label)
 cu_color <- cu
@@ -348,21 +371,7 @@ cu_color[cu == 0.5] <- SW_palette("TPM")[8]
 cu_color[cu == 1.0] <- SW_palette("ROTJ")[5]
 cu_color[is.na(cu)] <- SW_palette("Inquisitor")[3]
 
-#pdf(file = "Output/Hama_hab_tree.pdf", bg = "white")
 plot.phylo(Hama2, font = 3, label.offset = 0.07, edge.width = 3)
 points(x = rep(1.035, nspecies), y = 1:nspecies, pch = 19, col = cu_color, cex = 1.5)
-#dev.off()
-```
-
-```{r background_rates}
-# To get rate for whole group (not by subgroup), use a dummy variable.
-dummy <- c(rep(0, 17))
-dummy <- matrix(dummy, dimnames = list(names(hw_cs)))
-dummy <- dummy[Hama2$tip.label, ]
-dummy <- as.factor(dummy)
-dummy
-
-#fw_dummy <- compare.evol.rates(phy = Hama2, A =YF, gp = dummy, iter = 1e4)
-
-#hw_dummy <- compare.evol.rates(phy = Hama2, A = YH, gp = dummy, iter = 1e4)
+legend("topleft", legend = c("Canopy", "Mixed", "Ground", "Unknown"), pch = 19, col = c(SW_palette("ROTJ")[5], SW_palette("TPM")[8], SW_palette("TFA")[7], SW_palette("Inquisitor")[3]), pt.cex = 1.5, bty = "n", title = expression(bold("Habitat")))
 ```
